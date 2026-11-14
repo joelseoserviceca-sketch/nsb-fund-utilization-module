@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NSB Fund Utilization Tracking Module — Punjab</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>NSB Fund Utilization Tracking Module</h1>
+      <p>School Education Department, Government of the Punjab — PMIU-PESRP — GRADES Project, Trigger 2</p>
+    </div>
+    <div class="chips">
+      <span class="chip">Fiscal Year 2026-27</span>
+      <span class="chip">SIS + IMIS Integration</span>
+      <span class="chip">Acting Role:
+        <select id="roleSelect" aria-label="Acting Role">
+          <option value="sed">SED / PMIU Officer</option>
+          <option value="district">District Officer (DEA)</option>
+          <option value="school">School Head</option>
+          <option value="auditor">Auditor</option>
+        </select>
+      </span>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="notice"><strong>Demo version — SAMPLE data.</strong> This standalone demo uses labelled sample schools from Lahore, Sheikhupura and Gujranwala. Entries you add are saved in this browser only (localStorage). A shared database can be connected later with a Supabase Project URL and public anon key. This demo is not connected to the live SIS or IMIS systems; live integration needs the PMIU SIS/IMIS API.</div>
+  <nav class="tabs" id="tabs"></nav>
+  <section id="view"></section>
+  <footer class="card muted">
+    <strong>Source:</strong> Terms of Reference, November 2026 — Development and Integration of Digital Fund Utilization Tracking Module for Non-Salary Budget (NSB) of Schools, PMIU-PESRP. Go-live target: 12 weeks from contract signing; 12 weeks post-deployment support. Deliverables D-1 to D-11. Payment: 20% (D-1, D-2), 50% (D-3 to D-6), 30% (D-7 to D-11).
+  </footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
