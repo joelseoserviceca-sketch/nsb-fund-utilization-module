@@ -96,7 +96,7 @@ function cashAvailable(id) { var a = allocFor(id); return (a.opening || 0) + rel
 function audit(action) { state.audit.unshift({ date: new Date().toISOString().slice(0, 10), actor: ROLES[role], action: action }); save(); }
 function toast(msg) { var t = document.getElementById("toast"); if (!t) return; t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove("show"); }, 3500); }
 function statusPill(s) { var c = (s === "Approved" || s === "Acknowledged") ? "pill pill-ok" : (s === "Flagged" ? "pill pill-bad" : "pill pill-warn"); return '<span class="' + c + '">' + esc(s) + '</span>'; }
-function go(t) { tab = t; render(); window.scrollTo(0, 0); }
+function go(t) { var tb = TABS.find(function (x) { return x.id === t; }); if (!tb || !tb.roles.includes(role)) return; tab = t; render(); window.scrollTo(0, 0); }
 function setRole(v) { role = v; scopeSchool = "S01"; scopeDistrict = "Lahore"; if (!TABS.find(function (t) { return t.id === tab; }).roles.includes(role)) tab = "dashboard"; render(); }
 function setScopeSchool(v) { scopeSchool = v; render(); }
 function setScopeDistrict(v) { scopeDistrict = v; render(); }
@@ -153,12 +153,23 @@ function viewDashboard() {
   var sc = dashboardScope();
   var t = sc.t;
   var flaggedCount = sc.t.flagged;
-  var rows = sc.districts.map(function (d) {
-    var sc2 = state.schools.filter(function (s) { return s.district === d; });
-    var a = sc2.reduce(function (x, s) { var al = allocFor(s.id); return x + al.allocation + al.opening; }, 0);
-    var sp = sc2.reduce(function (x, s) { return x + spentBy(s.id); }, 0);
-    return "<tr><td>" + d + "</td><td>" + sc2.length + "</td><td>" + fmt(a) + "</td><td>" + fmt(sp) + "</td><td>" + fmt(a - sp) + "</td><td>" + (a ? Math.round(sp / a * 100) : 0) + "%</td></tr>";
-  }).join("");
+  var summaryHead, summaryRows, summaryTable;
+  if (role === "school") {
+    var ss = school(scopeSchool), sa = allocFor(scopeSchool);
+    var sAvail = (sa.allocation || 0) + (sa.opening || 0), sSp = spentBy(scopeSchool);
+    summaryHead = "School Summary";
+    summaryRows = "<tr><td>" + esc(ss.name) + "</td><td>" + fmt(sAvail) + "</td><td>" + fmt(sSp) + "</td><td>" + fmt(sAvail - sSp) + "</td><td>" + (sAvail ? Math.round(sSp / sAvail * 100) : 0) + "%</td></tr>";
+    summaryTable = '<table><tr><th>School</th><th>Available</th><th>Spent</th><th>Balance</th><th>Util. %</th></tr>' + summaryRows + '</table>';
+  } else {
+    summaryHead = "District Summary";
+    summaryRows = sc.districts.map(function (d) {
+      var sc2 = state.schools.filter(function (s) { return s.district === d; });
+      var a = sc2.reduce(function (x, s) { var al = allocFor(s.id); return x + al.allocation + al.opening; }, 0);
+      var sp = sc2.reduce(function (x, s) { return x + spentBy(s.id); }, 0);
+      return "<tr><td>" + d + "</td><td>" + sc2.length + "</td><td>" + fmt(a) + "</td><td>" + fmt(sp) + "</td><td>" + fmt(a - sp) + "</td><td>" + (a ? Math.round(sp / a * 100) : 0) + "%</td></tr>";
+    }).join("");
+    summaryTable = '<table><tr><th>District</th><th>Schools</th><th>Available</th><th>Spent</th><th>Balance</th><th>Util. %</th></tr>' + summaryRows + '</table>';
+  }
   var heads = HEADS.map(function (h) {
     var sp = state.expenditures.filter(function (e) { return e.head === h && sc.ids.indexOf(e.schoolId) !== -1; }).reduce(function (x, e) { return x + Number(e.amount); }, 0);
     return "<tr><td>" + h + "</td><td>" + fmt(sp) + "</td></tr>";
@@ -174,34 +185,55 @@ function viewDashboard() {
       + '</select></p>';
   }
   var scopeNote = sc.scopeText ? '<p class="muted">' + esc(sc.scopeText) + '</p>' : "";
+  var stepsHeading, stepsHtml;
+  if (role === "sed") {
+    stepsHeading = "Start Here — 4 Steps";
+    stepsHtml = '<button class="step" onclick="go(\'schools\')"><span class="step-num">1</span><b>Add Schools</b>Register a school with EMIS, enrolment, classrooms and council limit.</button>'
+      + '<button class="step" onclick="go(\'allocations\')"><span class="step-num">2</span><b>Calculate Allocations</b>Run the formula and carry forward last year\'s unspent balance.</button>'
+      + '<button class="step" onclick="go(\'releases\')"><span class="step-num">3</span><b>Record Releases</b>Record SED to DEA and DEA to school releases with bank reference.</button>'
+      + '<button class="step" onclick="go(\'spending\')"><span class="step-num">4</span><b>Record Spending</b>Record each expense with a mandatory receipt and view the cash book.</button>';
+  } else if (role === "district") {
+    stepsHeading = "Start Here — 3 Steps";
+    stepsHtml = '<button class="step" onclick="go(\'schools\')"><span class="step-num">1</span><b>Add Schools</b>Register a school with EMIS, enrolment, classrooms and council limit.</button>'
+      + '<button class="step" onclick="go(\'releases\')"><span class="step-num">2</span><b>Record Releases</b>Record DEA to school releases with bank reference.</button>'
+      + '<button class="step" onclick="go(\'review\')"><span class="step-num">3</span><b>Review Spending</b>Review recorded spending afterwards and approve or flag it.</button>';
+  } else if (role === "school") {
+    stepsHeading = "Start Here";
+    stepsHtml = '<button class="step" onclick="go(\'spending\')"><span class="step-num">1</span><b>Record Spending</b>Record each expense with a mandatory receipt and view the cash book.</button>'
+      + '<button class="step" onclick="go(\'releases\')"><span class="step-num">2</span><b>View My Releases</b>See releases to your school and acknowledge receipt.</button>';
+  } else {
+    stepsHeading = "Your Dashboard — View Only";
+    stepsHtml = '<button class="step" onclick="go(\'review\')"><span class="step-num">1</span><b>Review Flagged Items</b>View flagged spending and missing receipts.</button>'
+      + '<button class="step" onclick="go(\'access\')"><span class="step-num">2</span><b>View Audit Trail</b>See who did what, and when, in the audit trail.</button>';
+  }
   return '<div class="card"><h2>Dashboard — Province, District and School Level</h2><p class="muted">Database: ' + esc(DB_MODE) + ' &nbsp;|&nbsp; All amounts in Pakistani Rupees. Receipt coverage is the share of spending supported by a receipt.</p>'
     + picker + scopeNote
     + '<div class="kpis"><div class="kpi"><b>' + fmt(t.alloc) + '</b><span>Total allocation + opening balance</span></div><div class="kpi"><b>' + fmt(t.rel) + '</b><span>Total released</span></div><div class="kpi"><b>' + fmt(t.spent) + '</b><span>Total spent</span></div><div class="kpi tone-ok"><b>' + fmt(t.balance) + '</b><span>Balance remaining</span></div></div>'
     + '<div class="kpis"><div class="kpi"><b>' + t.util + '%</b><span>Utilization</span></div><div class="kpi"><b>' + t.receiptPct + '%</b><span>Spending supported by receipts</span></div><div class="kpi"><b>' + t.schools + '</b><span>' + esc(sc.schoolsLabel) + '</span></div><div class="kpi tone-bad"><b>' + flaggedCount + '</b><span>Flagged for review</span></div></div>'
-    + '<h3>Start Here — 4 Steps</h3><div class="steps">'
-    + '<button class="step" onclick="go(\'schools\')"><span class="step-num">1</span><b>Add Schools</b>Register a school with EMIS, enrolment, classrooms and council limit.</button>'
-    + '<button class="step" onclick="go(\'allocations\')"><span class="step-num">2</span><b>Calculate Allocations</b>Run the formula and carry forward last year\'s unspent balance.</button>'
-    + '<button class="step" onclick="go(\'releases\')"><span class="step-num">3</span><b>Record Releases</b>Record SED to DEA and DEA to school releases with bank reference.</button>'
-    + '<button class="step" onclick="go(\'spending\')"><span class="step-num">4</span><b>Record Spending</b>Record each expense with a mandatory receipt and view the cash book.</button></div></div>'
-    + '<div class="grid2"><div class="card"><h3>District Summary</h3><table><tr><th>District</th><th>Schools</th><th>Available</th><th>Spent</th><th>Balance</th><th>Util. %</th></tr>' + rows + '</table></div>'
+    + '<h3>' + stepsHeading + '</h3><div class="steps">' + stepsHtml + '</div></div>'
+    + '<div class="grid2"><div class="card"><h3>' + summaryHead + '</h3>' + summaryTable + '</div>'
     + '<div class="card"><h3>Spending by Head of Account</h3><table><tr><th>Head</th><th>Amount</th></tr>' + heads + '</table><button class="btn" onclick="exportCSV()">Export District Summary (CSV)</button> <button class="btn light" onclick="window.print()">Print Report (PDF)</button></div></div>';
 }
 function viewSchools() {
-  var rows = state.schools.map(function (s) {
+  var visible = role === "school" ? state.schools.filter(function (s) { return s.id === scopeSchool; }) : (role === "district" ? state.schools.filter(function (s) { return s.district === scopeDistrict; }) : state.schools);
+  var rows = visible.map(function (s) {
     return "<tr><td>" + esc(s.emis) + "</td><td>" + esc(s.name) + "</td><td>" + esc(s.district) + "</td><td>" + esc(s.level) + "</td><td>" + s.enrolment + "</td><td>" + s.classrooms + "</td><td>" + fmt(s.councilLimit) + "</td></tr>";
   }).join("");
-  return '<div class="card"><h2>Schools Register</h2><p class="muted">School master data comes from SIS in the live system. In this demo, add a school below.</p><table><tr><th>EMIS</th><th>School</th><th>District</th><th>Level</th><th>Enrolment</th><th>Classrooms</th><th>Council Limit</th></tr>' + rows + '</table></div>'
-    + '<div class="card"><h3>Add School</h3><p class="hint">Every field is required. The council limit is the maximum a school can spend on one item without district review. Pick a level and a limit is suggested automatically (Primary 100,000, Elementary 120,000, High 150,000) — you can still change it.</p><form onsubmit="addSchool(event)"><div><label>EMIS Code</label><input name="emis" required></div><div><label>School Name</label><input name="name" required></div><div><label>District</label><select name="district">' + DISTRICTS.map(function (d) { return "<option>" + d + "</option>"; }).join("") + '</select></div><div><label>Level</label><select name="level" id="levelSel" onchange="suggestLimit()"><option>Primary</option><option>Elementary</option><option>High</option></select></div><div><label>Enrolment</label><input name="enrolment" type="number" min="1" required></div><div><label>Classrooms</label><input name="classrooms" type="number" min="1" required></div><div><label>School Council Spending Limit (Rs.)</label><input name="councilLimit" id="limitInput" type="number" min="1" value="100000" required></div><div><label>&nbsp;</label><button class="btn" type="submit">Add School</button></div></form></div>';
+  var distOpts = role === "district" ? "<option>" + esc(scopeDistrict) + "</option>" : DISTRICTS.map(function (d) { return "<option>" + d + "</option>"; }).join("");
+  var intro = role === "school" ? "Your school's record in the register." : "School master data comes from SIS in the live system. In this demo, add a school below.";
+  var addForm = role === "school" ? "" : '<div class="card"><h3>Add School</h3><p class="hint">Every field is required. The council limit is the maximum a school can spend on one item without district review. Pick a level and a limit is suggested automatically (Primary 100,000, Elementary 120,000, High 150,000) — you can still change it.</p><form onsubmit="addSchool(event)"><div><label>EMIS Code</label><input name="emis" required></div><div><label>School Name</label><input name="name" required></div><div><label>District</label><select name="district">' + distOpts + '</select></div><div><label>Level</label><select name="level" id="levelSel" onchange="suggestLimit()"><option>Primary</option><option>Elementary</option><option>High</option></select></div><div><label>Enrolment</label><input name="enrolment" type="number" min="1" required></div><div><label>Classrooms</label><input name="classrooms" type="number" min="1" required></div><div><label>School Council Spending Limit (Rs.)</label><input name="councilLimit" id="limitInput" type="number" min="1" value="100000" required></div><div><label>&nbsp;</label><button class="btn" type="submit">Add School</button></div></form></div>';
+  return '<div class="card"><h2>Schools Register</h2><p class="muted">' + intro + '</p><table><tr><th>EMIS</th><th>School</th><th>District</th><th>Level</th><th>Enrolment</th><th>Classrooms</th><th>Council Limit</th></tr>' + rows + '</table></div>' + addForm;
 }
 function viewAllocations() {
   var f = state.formula;
-  var rows = state.schools.map(function (s) {
+  var allocSchools = role === "district" ? state.schools.filter(function (s) { return s.district === scopeDistrict; }) : state.schools;
+  var rows = allocSchools.map(function (s) {
     var a = allocFor(s.id), calc = calcAllocation(s);
     return "<tr><td>" + esc(s.name) + "</td><td>" + esc(s.district) + "</td><td>" + fmt(a.opening) + "</td><td>" + fmt(a.allocation || calc) + "</td><td>" + fmt((a.opening || 0) + (a.allocation || calc)) + "</td></tr>";
   }).join("");
   return '<div class="card"><h2>Allocations — Fiscal Year 2026-27</h2><p class="muted">Formula: (Base + Per-Student x Enrolment + Per-Classroom x Classrooms) x Level Weight. Last year\'s unspent balance is carried forward as the opening balance. The formula can be changed without code changes.</p>'
-    + '<form onsubmit="saveFormula(event)"><div><label>Base Amount (Rs.)</label><input name="base" type="number" value="' + f.base + '"></div><div><label>Per Student (Rs.)</label><input name="perStudent" type="number" value="' + f.perStudent + '"></div><div><label>Per Classroom (Rs.)</label><input name="perClassroom" type="number" value="' + f.perClassroom + '"></div><div><label>Primary Weight</label><input name="wP" type="number" step="0.01" value="' + f.levelWeight.Primary + '"></div><div><label>Elementary Weight</label><input name="wE" type="number" step="0.01" value="' + f.levelWeight.Elementary + '"></div><div><label>High Weight</label><input name="wH" type="number" step="0.01" value="' + f.levelWeight.High + '"></div><div><label>&nbsp;</label><button class="btn" type="submit">Save Formula</button></div></form>'
-    + '<p><button class="btn green" onclick="calculateAllocations()">Calculate Allocations for All Schools</button></p>'
+    + (role === "sed" ? '<form onsubmit="saveFormula(event)"><div><label>Base Amount (Rs.)</label><input name="base" type="number" value="' + f.base + '"></div><div><label>Per Student (Rs.)</label><input name="perStudent" type="number" value="' + f.perStudent + '"></div><div><label>Per Classroom (Rs.)</label><input name="perClassroom" type="number" value="' + f.perClassroom + '"></div><div><label>Primary Weight</label><input name="wP" type="number" step="0.01" value="' + f.levelWeight.Primary + '"></div><div><label>Elementary Weight</label><input name="wE" type="number" step="0.01" value="' + f.levelWeight.Elementary + '"></div><div><label>High Weight</label><input name="wH" type="number" step="0.01" value="' + f.levelWeight.High + '"></div><div><label>&nbsp;</label><button class="btn" type="submit">Save Formula</button></div></form>'
+    + '<p><button class="btn green" onclick="calculateAllocations()">Calculate Allocations for All Schools</button></p>' : "")
     + '<table><tr><th>School</th><th>District</th><th>Opening Balance (carry-forward)</th><th>Allocation</th><th>Total Available</th></tr>' + rows + '</table></div>';
 }
 function visibleReleases() {
@@ -230,7 +262,7 @@ function viewSpending() {
   else if (role === "district" && (!school(sid) || school(sid).district !== scopeDistrict)) { var firstIn = state.schools.find(function (x) { return x.district === scopeDistrict; }); sid = firstIn ? firstIn.id : "S01"; }
   var rows = state.expenditures.filter(function (e) { return e.schoolId === sid; }).map(function (e) {
     return "<tr><td>" + esc(e.date) + "</td><td>" + esc(e.head) + "</td><td>" + esc(e.vendor) + "</td><td>" + fmt(e.amount) + "</td><td>" + esc(e.description) + "</td><td>" + (e.receipt ? esc(e.receipt) : '<span class="pill pill-bad">Missing receipt</span>') + "</td><td>" + statusPill(e.status) + "</td></tr>";
-  }).join("") || '<tr><td colspan="7"><span class="empty">No spending recorded for this school yet. Use the form above to record the first expense.</span></td></tr>';
+  }).join("") || '<tr><td colspan="7"><span class="empty">No spending recorded for this school yet.' + (role === "district" ? "" : " Use the form above to record the first expense.") + '</span></td></tr>';
   var a = allocFor(sid);
   var visibleSchools = role === "school" ? state.schools.filter(function (s) { return s.id === scopeSchool; }) : (role === "district" ? state.schools.filter(function (s) { return s.district === scopeDistrict; }) : state.schools);
   var opts = visibleSchools.map(function (s) { return '<option value="' + s.id + '"' + (s.id === sid ? " selected" : "") + ">" + esc(s.name) + " (" + esc(s.district) + ")</option>"; }).join("");
@@ -239,7 +271,7 @@ function viewSpending() {
   var scopeNoteSpend = scSpend.scopeText ? '<p class="muted">' + esc(scSpend.scopeText) + '</p>' : "";
   return '<div class="card"><h2>School Spending in SIS</h2><p class="muted">The school head records each expense directly, against the head of account, with vendor, amount, date and description. A receipt, invoice or cash memo photo is mandatory for every expense. Spending is not held up for prior approval; it is reviewed afterwards by the district.</p>' + scopeNoteSpend
     + '<p class="hint">A school can only spend cash it actually has: opening balance + funds received (acknowledged releases) &minus; spending already recorded. An expense above the available cash is not recorded.</p>'
-    + '<form onsubmit="addExpense(event)"><div><label>School</label><select name="schoolId">' + expOpts + '</select></div><div><label>Head of Account</label><select name="head">' + HEADS.map(function (h) { return "<option>" + h + "</option>"; }).join("") + '</select></div><div><label>Vendor</label><input name="vendor" required></div><div><label>Amount (Rs.)</label><input name="amount" type="number" min="1" required></div><div><label>Date</label><input name="date" type="date" required></div><div><label>Description</label><input name="description" required></div><div><label>Receipt / Invoice / Cash Memo (mandatory)</label><input name="receipt" type="file" required></div><div><label>&nbsp;</label><button class="btn" type="submit">Record Expense</button></div></form></div>'
+    + (role === "district" ? "" : '<form onsubmit="addExpense(event)"><div><label>School</label><select name="schoolId">' + expOpts + '</select></div><div><label>Head of Account</label><select name="head">' + HEADS.map(function (h) { return "<option>" + h + "</option>"; }).join("") + '</select></div><div><label>Vendor</label><input name="vendor" required></div><div><label>Amount (Rs.)</label><input name="amount" type="number" min="1" required></div><div><label>Date</label><input name="date" type="date" required></div><div><label>Description</label><input name="description" required></div><div><label>Receipt / Invoice / Cash Memo (mandatory)</label><input name="receipt" type="file" required></div><div><label>&nbsp;</label><button class="btn" type="submit">Record Expense</button></div></form>') + '</div>'
     + '<div class="card"><h3>Automatic Cash Book</h3><p class="hint">Pick a school to see its cash book. Opening balance + funds received (acknowledged releases) &minus; spending = closing balance.</p><p><label>School</label><select id="cashSchool" onchange="render()">' + opts + '</select></p>'
     + '<div class="kpis"><div class="kpi"><b>' + fmt(a.opening || 0) + '</b><span>Opening balance</span></div><div class="kpi"><b>' + fmt(releasedTo(sid)) + '</b><span>Funds received (acknowledged)</span></div><div class="kpi"><b>' + fmt(spentBy(sid)) + '</b><span>Expenditure</span></div><div class="kpi"><b>' + fmt(cashAvailable(sid)) + '</b><span>Closing balance</span></div></div>'
     + '<table><tr><th>Date</th><th>Head</th><th>Vendor</th><th>Amount</th><th>Description</th><th>Receipt</th><th>Status</th></tr>' + rows + '</table><button class="btn" onclick="exportCSV()">Export Cash Book (CSV)</button></div>';
@@ -248,7 +280,7 @@ function viewReview() {
   var rows = state.expenditures.map(function (e) {
     var s = school(e.schoolId);
     var flag = (!e.receipt || Number(e.amount) > (s.councilLimit || 0)) ? '<span class="pill pill-bad">Flagged</span>' : '<span class="pill pill-ok">No flag</span>';
-    return "<tr><td>" + esc(e.id) + "</td><td>" + esc(s.name || "") + "</td><td>" + esc(e.date) + "</td><td>" + esc(e.head) + "</td><td>" + fmt(e.amount) + "</td><td>" + (e.receipt ? esc(e.receipt) : '<span class="pill pill-bad">Missing receipt</span>') + "</td><td>" + flag + "</td><td>" + esc(e.status) + "<br><span class='muted'>" + esc(e.review || "") + "</span></td><td><button class='btn green' onclick=\"reviewExp('" + e.id + "','Approved')\">Approve</button> <button class='btn red' onclick=\"reviewExp('" + e.id + "','Flagged')\">Flag</button></td></tr>";
+    return "<tr><td>" + esc(e.id) + "</td><td>" + esc(s.name || "") + "</td><td>" + esc(e.date) + "</td><td>" + esc(e.head) + "</td><td>" + fmt(e.amount) + "</td><td>" + (e.receipt ? esc(e.receipt) : '<span class="pill pill-bad">Missing receipt</span>') + "</td><td>" + flag + "</td><td>" + esc(e.status) + "<br><span class='muted'>" + esc(e.review || "") + "</span></td><td>" + (role === "auditor" ? "—" : "<button class='btn green' onclick=\"reviewExp('" + e.id + "','Approved')\">Approve</button> <button class='btn red' onclick=\"reviewExp('" + e.id + "','Flagged')\">Flag</button>") + "</td></tr>";
   }).join("");
   return '<div class="card"><h2>Review of Recorded Spending</h2><p class="muted">District officials (AEO / DEO / CEO) review recorded spending afterwards, on a sample or exception basis, without holding up school spending. The system flags missing receipts and expenses above the configured school council limit automatically.</p><table><tr><th>ID</th><th>School</th><th>Date</th><th>Head</th><th>Amount</th><th>Receipt</th><th>Auto Flag</th><th>Status</th><th>Action</th></tr>' + rows + '</table></div>';
 }
@@ -259,11 +291,11 @@ function viewDeliverables() {
   return '<div class="card"><h2>Deliverables D-1 to D-11 and Payment Milestones</h2><p class="muted">Each deliverable is reviewed and approved by the client before it is complete. Lump-sum payment: 20% on D-1 and D-2, 50% on D-3 to D-6, 30% on D-7 to D-11. Total duration: 6 months — 12 weeks to province-wide go-live, then 12 weeks of post-deployment support.</p><table><tr><th>ID</th><th>Deliverable</th><th>Timeline</th><th>Payment Group</th><th>Note</th></tr>' + rows + '</table></div>';
 }
 function viewAccess() {
-  var rights = [["SED / PMIU Officer", "All modules, allocations, releases, review, reports"], ["District Officer (DEA)", "Dashboard, Schools, Allocations, Releases, Review, Deliverables, Audit"], ["School Head", "Dashboard, Schools, Spending and Cash Book only"], ["Auditor", "Dashboard, Review, Deliverables, Audit trail"]];
+  var rights = [["SED / PMIU Officer", "All modules, allocations, releases, review, reports"], ["District Officer (DEA)", "Dashboard, Schools, Allocations, Releases, Review, Deliverables, Audit"], ["School Head", "Dashboard, Schools, Releases, Spending and Cash Book only"], ["Auditor", "Dashboard, Review, Deliverables, Audit trail"]];
   var rrows = rights.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("");
   var arows = state.audit.map(function (a) { return "<tr><td>" + esc(a.date) + "</td><td>" + esc(a.actor) + "</td><td>" + esc(a.action) + "</td></tr>"; }).join("");
   return '<div class="card"><h2>Access &amp; Audit Trail</h2><p class="muted">Role-based access control. Every entry, edit, acknowledgement and review is recorded with actor and date. Database: ' + esc(DB_MODE) + '.</p><table><tr><th>Role</th><th>Access</th></tr>' + rrows + '</table><h3>Audit Trail</h3><table><tr><th>Date</th><th>Actor</th><th>Action</th></tr>' + arows + '</table></div>'
-    + '<div class="card"><h3>Data — Export, Import, Reset</h3><p class="muted">Use Export JSON to back up all demo data, and Import JSON to restore it on another browser. Supabase: fill in SUPABASE_URL and SUPABASE_ANON_KEY at the top of app.js to switch this demo to a shared Supabase database. Do not use a password or service key.</p><button class="btn" onclick="exportJSON()">Export JSON</button> <button class="btn light" onclick="document.getElementById(\'importFile\').click()">Import JSON</button><input id="importFile" type="file" accept=".json" style="display:none" onchange="importJSON(event)"> <button class="btn red" onclick="resetData()">Reset to Sample Data</button></div>';
+    + '<div class="card"><h3>Data — Export, Import, Reset</h3><p class="muted">' + (role === "sed" ? "Use Export JSON to back up all demo data, and Import JSON to restore it on another browser. Supabase: fill in SUPABASE_URL and SUPABASE_ANON_KEY at the top of app.js to switch this demo to a shared Supabase database. Do not use a password or service key." : "Use Export JSON to back up all demo data.") + '</p><button class="btn" onclick="exportJSON()">Export JSON</button>' + (role === "sed" ? ' <button class="btn light" onclick="document.getElementById(\'importFile\').click()">Import JSON</button><input id="importFile" type="file" accept=".json" style="display:none" onchange="importJSON(event)"> <button class="btn red" onclick="resetData()">Reset to Sample Data</button>' : "") + '</div>';
 }
 function suggestLimit() { var l = document.getElementById("levelSel"); var i = document.getElementById("limitInput"); if (!l || !i) return; var map = { Primary: 100000, Elementary: 120000, High: 150000 }; i.value = map[l.value] || 100000; }
 function addSchool(e) { e.preventDefault(); var f = e.target; var id = "S" + (state.schools.length + 1) + Date.now() % 1000; state.schools.push({ id: id, emis: f.emis.value, name: f.name.value, district: f.district.value, level: f.level.value, enrolment: +f.enrolment.value, classrooms: +f.classrooms.value, councilLimit: +f.councilLimit.value }); audit("School registered: " + f.name.value + " (" + f.emis.value + ")"); toast("School added: " + f.name.value); render(); }
