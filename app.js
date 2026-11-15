@@ -83,6 +83,7 @@ let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || seed(); } catch (e) { state = seed(); }
 if (!state.schools) state = seed();
 let role = "sed", tab = "dashboard";
+let scopeSchool = "S01", scopeDistrict = "Lahore";
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 function fmt(n) { return "Rs. " + Number(n || 0).toLocaleString("en-PK"); }
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -96,7 +97,9 @@ function audit(action) { state.audit.unshift({ date: new Date().toISOString().sl
 function toast(msg) { var t = document.getElementById("toast"); if (!t) return; t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove("show"); }, 3500); }
 function statusPill(s) { var c = (s === "Approved" || s === "Acknowledged") ? "pill pill-ok" : (s === "Flagged" ? "pill pill-bad" : "pill pill-warn"); return '<span class="' + c + '">' + esc(s) + '</span>'; }
 function go(t) { tab = t; render(); window.scrollTo(0, 0); }
-function setRole(v) { role = v; if (!TABS.find(function (t) { return t.id === tab; }).roles.includes(role)) tab = "dashboard"; render(); }
+function setRole(v) { role = v; scopeSchool = "S01"; scopeDistrict = "Lahore"; if (!TABS.find(function (t) { return t.id === tab; }).roles.includes(role)) tab = "dashboard"; render(); }
+function setScopeSchool(v) { scopeSchool = v; render(); }
+function setScopeDistrict(v) { scopeDistrict = v; render(); }
 
 function render() {
   var tabsEl = document.getElementById("tabs");
@@ -125,21 +128,56 @@ function totals() {
   var withReceipt = state.expenditures.filter(function (e) { return e.receipt; }).reduce(function (t, e) { return t + Number(e.amount); }, 0);
   return { alloc: alloc, rel: rel, spent: spent, balance: alloc - spent, util: alloc ? Math.round(spent / alloc * 100) : 0, receiptPct: spent ? Math.round(withReceipt / spent * 100) : 0 };
 }
-function viewDashboard() {
+function scopedTotals(ids) {
+  var alloc = 0, rel = 0, spent = 0, withReceipt = 0, flagged = 0;
+  ids.forEach(function (id) { var a = allocFor(id); alloc += Number(a.allocation || 0) + Number(a.opening || 0); });
+  state.releases.forEach(function (r) { if (r.schoolId && ids.indexOf(r.schoolId) !== -1) rel += Number(r.amount); });
+  state.expenditures.forEach(function (e) { if (ids.indexOf(e.schoolId) !== -1) { spent += Number(e.amount); if (e.receipt) withReceipt += Number(e.amount); if (e.status === "Flagged") flagged++; } });
+  return { alloc: alloc, rel: rel, spent: spent, balance: alloc - spent, util: alloc ? Math.round(spent / alloc * 100) : 0, receiptPct: spent ? Math.round(withReceipt / spent * 100) : 0, schools: ids.length, flagged: flagged };
+}
+function dashboardScope() {
+  if (role === "school") {
+    var s = school(scopeSchool);
+    return { t: scopedTotals([scopeSchool]), districts: [s.district], ids: [scopeSchool], scopeText: "Showing figures for " + s.name + " (" + s.district + ") only.", schoolsLabel: "School shown" };
+  }
+  if (role === "district") {
+    var ids = state.schools.filter(function (x) { return x.district === scopeDistrict; }).map(function (x) { return x.id; });
+    return { t: scopedTotals(ids), districts: [scopeDistrict], ids: ids, scopeText: "Showing figures for " + scopeDistrict + " district only.", schoolsLabel: "Schools in this district" };
+  }
   var t = totals();
-  var rows = DISTRICTS.map(function (d) {
-    var sc = state.schools.filter(function (s) { return s.district === d; });
-    var a = sc.reduce(function (x, s) { var al = allocFor(s.id); return x + al.allocation + al.opening; }, 0);
-    var sp = sc.reduce(function (x, s) { return x + spentBy(s.id); }, 0);
-    return "<tr><td>" + d + "</td><td>" + sc.length + "</td><td>" + fmt(a) + "</td><td>" + fmt(sp) + "</td><td>" + fmt(a - sp) + "</td><td>" + (a ? Math.round(sp / a * 100) : 0) + "%</td></tr>";
+  t.schools = state.schools.length;
+  t.flagged = state.expenditures.filter(function (e) { return e.status === "Flagged"; }).length;
+  return { t: t, districts: DISTRICTS.slice(), ids: state.schools.map(function (x) { return x.id; }), scopeText: "", schoolsLabel: "Schools in this demo" };
+}
+function viewDashboard() {
+  var sc = dashboardScope();
+  var t = sc.t;
+  var flaggedCount = sc.t.flagged;
+  var rows = sc.districts.map(function (d) {
+    var sc2 = state.schools.filter(function (s) { return s.district === d; });
+    var a = sc2.reduce(function (x, s) { var al = allocFor(s.id); return x + al.allocation + al.opening; }, 0);
+    var sp = sc2.reduce(function (x, s) { return x + spentBy(s.id); }, 0);
+    return "<tr><td>" + d + "</td><td>" + sc2.length + "</td><td>" + fmt(a) + "</td><td>" + fmt(sp) + "</td><td>" + fmt(a - sp) + "</td><td>" + (a ? Math.round(sp / a * 100) : 0) + "%</td></tr>";
   }).join("");
   var heads = HEADS.map(function (h) {
-    var sp = state.expenditures.filter(function (e) { return e.head === h; }).reduce(function (x, e) { return x + Number(e.amount); }, 0);
+    var sp = state.expenditures.filter(function (e) { return e.head === h && sc.ids.indexOf(e.schoolId) !== -1; }).reduce(function (x, e) { return x + Number(e.amount); }, 0);
     return "<tr><td>" + h + "</td><td>" + fmt(sp) + "</td></tr>";
   }).join("");
+  var picker = "";
+  if (role === "school") {
+    picker = '<p><label>School</label><select id="scopeSchool" onchange="setScopeSchool(this.value)">'
+      + state.schools.map(function (s) { return '<option value="' + s.id + '"' + (s.id === scopeSchool ? " selected" : "") + ">" + esc(s.name) + " (" + esc(s.district) + ")</option>"; }).join("")
+      + '</select></p>';
+  } else if (role === "district") {
+    picker = '<p><label>District</label><select id="scopeDistrict" onchange="setScopeDistrict(this.value)">'
+      + DISTRICTS.map(function (d) { return "<option" + (d === scopeDistrict ? " selected" : "") + ">" + d + "</option>"; }).join("")
+      + '</select></p>';
+  }
+  var scopeNote = sc.scopeText ? '<p class="muted">' + esc(sc.scopeText) + '</p>' : "";
   return '<div class="card"><h2>Dashboard — Province, District and School Level</h2><p class="muted">Database: ' + esc(DB_MODE) + ' &nbsp;|&nbsp; All amounts in Pakistani Rupees. Receipt coverage is the share of spending supported by a receipt.</p>'
+    + picker + scopeNote
     + '<div class="kpis"><div class="kpi"><b>' + fmt(t.alloc) + '</b><span>Total allocation + opening balance</span></div><div class="kpi"><b>' + fmt(t.rel) + '</b><span>Total released</span></div><div class="kpi"><b>' + fmt(t.spent) + '</b><span>Total spent</span></div><div class="kpi tone-ok"><b>' + fmt(t.balance) + '</b><span>Balance remaining</span></div></div>'
-    + '<div class="kpis"><div class="kpi"><b>' + t.util + '%</b><span>Utilization</span></div><div class="kpi"><b>' + t.receiptPct + '%</b><span>Spending supported by receipts</span></div><div class="kpi"><b>' + state.schools.length + '</b><span>Schools in this demo</span></div><div class="kpi tone-bad"><b>' + state.expenditures.filter(function (e) { return e.status === "Flagged"; }).length + '</b><span>Flagged for review</span></div></div>'
+    + '<div class="kpis"><div class="kpi"><b>' + t.util + '%</b><span>Utilization</span></div><div class="kpi"><b>' + t.receiptPct + '%</b><span>Spending supported by receipts</span></div><div class="kpi"><b>' + t.schools + '</b><span>' + esc(sc.schoolsLabel) + '</span></div><div class="kpi tone-bad"><b>' + flaggedCount + '</b><span>Flagged for review</span></div></div>'
     + '<h3>Start Here — 4 Steps</h3><div class="steps">'
     + '<button class="step" onclick="go(\'schools\')"><span class="step-num">1</span><b>Add Schools</b>Register a school with EMIS, enrolment, classrooms and council limit.</button>'
     + '<button class="step" onclick="go(\'allocations\')"><span class="step-num">2</span><b>Calculate Allocations</b>Run the formula and carry forward last year\'s unspent balance.</button>'
@@ -166,24 +204,40 @@ function viewAllocations() {
     + '<p><button class="btn green" onclick="calculateAllocations()">Calculate Allocations for All Schools</button></p>'
     + '<table><tr><th>School</th><th>District</th><th>Opening Balance (carry-forward)</th><th>Allocation</th><th>Total Available</th></tr>' + rows + '</table></div>';
 }
+function visibleReleases() {
+  if (role === "school") return state.releases.filter(function (r) { return r.schoolId === scopeSchool; });
+  if (role === "district") return state.releases.filter(function (r) {
+    return (r.schoolId && school(r.schoolId).district === scopeDistrict) || (r.from === "SED" && r.to === "DEA " + scopeDistrict);
+  });
+  return state.releases;
+}
 function viewReleases() {
-  var rows = state.releases.map(function (r) {
+  var sc = dashboardScope();
+  var scopeNote = sc.scopeText ? '<p class="muted">' + esc(sc.scopeText) + '</p>' : "";
+  var rows = visibleReleases().map(function (r) {
     return "<tr><td>" + esc(r.id) + "</td><td>" + esc(r.from) + " to " + esc(r.to) + "</td><td>" + esc(r.date) + "</td><td>" + fmt(r.amount) + "</td><td>" + esc(r.instalment) + "</td><td>" + esc(r.bankRef) + "</td><td>" + esc(r.sanction) + "</td><td>" + statusPill(r.status) + '</td><td>' + (r.status !== "Acknowledged" ? '<button class="btn" onclick="acknowledge(\'' + r.id + '\')">Acknowledge Receipt</button>' : "—") + "</td></tr>";
   }).join("");
-  var opts = state.schools.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + " (" + esc(s.district) + ")</option>"; }).join("");
-  return '<div class="card"><h2>Releases — SED to DEA to School</h2><p class="muted">Record each release with date, amount, instalment and bank transaction reference. Upload the release order or sanction letter (file name is recorded in this demo). The school acknowledges receipt in SIS.</p><table><tr><th>ID</th><th>From to To</th><th>Date</th><th>Amount</th><th>Instalment</th><th>Bank Reference</th><th>Sanction Letter</th><th>Status</th><th>Action</th></tr>' + rows + '</table></div>'
-    + '<div class="card"><h3>Record a Release</h3><p class="hint">Enter the bank reference exactly as on the bank statement, and attach the release order or sanction letter. A release can never be more than the school\'s remaining allocation (opening balance + allocation, minus releases already recorded to that school).</p><form onsubmit="addRelease(event)"><div><label>From</label><select name="from"><option>SED</option><option>DEA Lahore</option><option>DEA Sheikhupura</option><option>DEA Gujranwala</option></select></div><div><label>To School</label><select name="schoolId">' + opts + '</select></div><div><label>Date</label><input name="date" type="date" required></div><div><label>Amount (Rs.)</label><input name="amount" type="number" min="1" required></div><div><label>Instalment</label><select name="instalment"><option>Instalment 1</option><option>Instalment 2</option><option>Instalment 3</option></select></div><div><label>Bank Transaction Reference</label><input name="bankRef" required></div><div><label>Release Order / Sanction Letter (file name)</label><input name="sanction" type="file"></div><div><label>&nbsp;</label><button class="btn" type="submit">Record Release</button></div></form></div>';
+  var formSchools = role === "district" ? state.schools.filter(function (s) { return s.district === scopeDistrict; }) : state.schools;
+  var opts = formSchools.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + " (" + esc(s.district) + ")</option>"; }).join("");
+  var form = role === "school" ? "" : '<div class="card"><h3>Record a Release</h3><p class="hint">Enter the bank reference exactly as on the bank statement, and attach the release order or sanction letter. A release can never be more than the school\'s remaining allocation (opening balance + allocation, minus releases already recorded to that school).</p><form onsubmit="addRelease(event)"><div><label>From</label><select name="from"><option>SED</option><option>DEA Lahore</option><option>DEA Sheikhupura</option><option>DEA Gujranwala</option></select></div><div><label>To School</label><select name="schoolId">' + opts + '</select></div><div><label>Date</label><input name="date" type="date" required></div><div><label>Amount (Rs.)</label><input name="amount" type="number" min="1" required></div><div><label>Instalment</label><select name="instalment"><option>Instalment 1</option><option>Instalment 2</option><option>Instalment 3</option></select></div><div><label>Bank Transaction Reference</label><input name="bankRef" required></div><div><label>Release Order / Sanction Letter (file name)</label><input name="sanction" type="file"></div><div><label>&nbsp;</label><button class="btn" type="submit">Record Release</button></div></form></div>';
+  return '<div class="card"><h2>Releases — SED to DEA to School</h2><p class="muted">Record each release with date, amount, instalment and bank transaction reference. Upload the release order or sanction letter (file name is recorded in this demo). The school acknowledges receipt in SIS.</p>' + scopeNote + '<table><tr><th>ID</th><th>From to To</th><th>Date</th><th>Amount</th><th>Instalment</th><th>Bank Reference</th><th>Sanction Letter</th><th>Status</th><th>Action</th></tr>' + rows + '</table></div>'
+    + form;
 }
 function viewSpending() {
   var sel = document.getElementById("cashSchool");
   var sid = sel ? sel.value : "S01";
+  if (role === "school") sid = scopeSchool;
+  else if (role === "district" && (!school(sid) || school(sid).district !== scopeDistrict)) { var firstIn = state.schools.find(function (x) { return x.district === scopeDistrict; }); sid = firstIn ? firstIn.id : "S01"; }
   var rows = state.expenditures.filter(function (e) { return e.schoolId === sid; }).map(function (e) {
     return "<tr><td>" + esc(e.date) + "</td><td>" + esc(e.head) + "</td><td>" + esc(e.vendor) + "</td><td>" + fmt(e.amount) + "</td><td>" + esc(e.description) + "</td><td>" + (e.receipt ? esc(e.receipt) : '<span class="pill pill-bad">Missing receipt</span>') + "</td><td>" + statusPill(e.status) + "</td></tr>";
   }).join("") || '<tr><td colspan="7"><span class="empty">No spending recorded for this school yet. Use the form above to record the first expense.</span></td></tr>';
   var a = allocFor(sid);
-  var opts = state.schools.map(function (s) { return '<option value="' + s.id + '"' + (s.id === sid ? " selected" : "") + ">" + esc(s.name) + " (" + esc(s.district) + ")</option>"; }).join("");
-  var expOpts = state.schools.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + " (" + esc(s.district) + ")</option>"; }).join("");
-  return '<div class="card"><h2>School Spending in SIS</h2><p class="muted">The school head records each expense directly, against the head of account, with vendor, amount, date and description. A receipt, invoice or cash memo photo is mandatory for every expense. Spending is not held up for prior approval; it is reviewed afterwards by the district.</p>'
+  var visibleSchools = role === "school" ? state.schools.filter(function (s) { return s.id === scopeSchool; }) : (role === "district" ? state.schools.filter(function (s) { return s.district === scopeDistrict; }) : state.schools);
+  var opts = visibleSchools.map(function (s) { return '<option value="' + s.id + '"' + (s.id === sid ? " selected" : "") + ">" + esc(s.name) + " (" + esc(s.district) + ")</option>"; }).join("");
+  var expOpts = visibleSchools.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + " (" + esc(s.district) + ")</option>"; }).join("");
+  var scSpend = dashboardScope();
+  var scopeNoteSpend = scSpend.scopeText ? '<p class="muted">' + esc(scSpend.scopeText) + '</p>' : "";
+  return '<div class="card"><h2>School Spending in SIS</h2><p class="muted">The school head records each expense directly, against the head of account, with vendor, amount, date and description. A receipt, invoice or cash memo photo is mandatory for every expense. Spending is not held up for prior approval; it is reviewed afterwards by the district.</p>' + scopeNoteSpend
     + '<p class="hint">A school can only spend cash it actually has: opening balance + funds received (acknowledged releases) &minus; spending already recorded. An expense above the available cash is not recorded.</p>'
     + '<form onsubmit="addExpense(event)"><div><label>School</label><select name="schoolId">' + expOpts + '</select></div><div><label>Head of Account</label><select name="head">' + HEADS.map(function (h) { return "<option>" + h + "</option>"; }).join("") + '</select></div><div><label>Vendor</label><input name="vendor" required></div><div><label>Amount (Rs.)</label><input name="amount" type="number" min="1" required></div><div><label>Date</label><input name="date" type="date" required></div><div><label>Description</label><input name="description" required></div><div><label>Receipt / Invoice / Cash Memo (mandatory)</label><input name="receipt" type="file" required></div><div><label>&nbsp;</label><button class="btn" type="submit">Record Expense</button></div></form></div>'
     + '<div class="card"><h3>Automatic Cash Book</h3><p class="hint">Pick a school to see its cash book. Opening balance + funds received (acknowledged releases) &minus; spending = closing balance.</p><p><label>School</label><select id="cashSchool" onchange="render()">' + opts + '</select></p>'
