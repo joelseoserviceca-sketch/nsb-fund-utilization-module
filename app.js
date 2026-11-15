@@ -150,6 +150,11 @@ function dashboardScope() {
 }
 function viewDashboard() {
   var sc = dashboardScope();
+  var dashHeading;
+  if (role === "school") { var hs = school(scopeSchool); dashHeading = "Dashboard — School Level: " + hs.name + " (" + hs.district + ")"; }
+  else if (role === "district") { dashHeading = "Dashboard — District Level: " + scopeDistrict; }
+  else if (role === "auditor") { dashHeading = "Dashboard — Province Level (Auditor — Read Only)"; }
+  else { dashHeading = "Dashboard — Province Level (SED / PMIU)"; }
   var t = sc.t;
   var flaggedCount = sc.t.flagged;
   var summaryHead, summaryRows, summaryTable;
@@ -205,7 +210,7 @@ function viewDashboard() {
     stepsHtml = '<button class="step" onclick="go(\'review\')"><span class="step-num">1</span><b>Review Flagged Items</b>View flagged spending and missing receipts.</button>'
       + '<button class="step" onclick="go(\'access\')"><span class="step-num">2</span><b>View Audit Trail</b>See who did what, and when, in the audit trail.</button>';
   }
-  return '<div class="card"><h2>Dashboard — Province, District and School Level</h2><p class="muted">Database: ' + esc(DB_MODE) + ' &nbsp;|&nbsp; All amounts in Pakistani Rupees. Receipt coverage is the share of spending supported by a receipt.</p>'
+  return '<div class="card"><h2>' + dashHeading + '</h2><p class="muted">Database: ' + esc(DB_MODE) + ' &nbsp;|&nbsp; All amounts in Pakistani Rupees. Receipt coverage is the share of spending supported by a receipt.</p>'
     + picker + scopeNote
     + '<div class="kpis"><div class="kpi"><b>' + fmt(t.alloc) + '</b><span>Total allocation + opening balance</span></div><div class="kpi"><b>' + fmt(t.rel) + '</b><span>Total released</span></div><div class="kpi"><b>' + fmt(t.spent) + '</b><span>Total spent</span></div><div class="kpi tone-ok"><b>' + fmt(t.balance) + '</b><span>Balance remaining</span></div></div>'
     + '<div class="kpis"><div class="kpi"><b>' + t.util + '%</b><span>Utilization</span></div><div class="kpi"><b>' + t.receiptPct + '%</b><span>Spending supported by receipts</span></div><div class="kpi"><b>' + t.schools + '</b><span>' + esc(sc.schoolsLabel) + '</span></div><div class="kpi tone-bad"><b>' + flaggedCount + '</b><span>Flagged for review</span></div></div>'
