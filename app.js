@@ -224,13 +224,11 @@ function viewDashboard() {
     + '<div class="grid2"><div class="card"><h3>' + summaryHead + '</h3>' + summaryTable + '</div>'
     + '<div class="card"><h3>Spending by Head of Account</h3><table><tr><th>Head</th><th>Amount</th></tr>' + heads + '</table><button class="btn" onclick="exportCSV()">Export District Summary (CSV)</button> <button class="btn light" onclick="window.print()">Print Report (PDF)</button></div></div>'
     + '<div class="card"><h3>SIS Punjab — Province Snapshot (public dashboard, 15 Nov 2026)</h3><table><tr><th>Indicator</th><th>Figure</th></tr>'
-    + '<tr><td>Schools</td><td>52,765 (Male 19,420 / Female 25,760 / Mixed 7,585)</td></tr>'
-    + '<tr><td>Current Enrolment</td><td>12,170,800 (Male 6,294,300 / Female 5,876,500)</td></tr>'
-    + '<tr><td>Teachers &amp; Staff</td><td>399,760 (Male 183,650 / Female 216,110)</td></tr>'
-    + '<tr><td>Student attendance, November</td><td>93.29% (11,354,840 of 12,170,800 present)</td></tr>'
-    + '<tr><td>Teacher attendance, November</td><td>89.42% (354,888 of 396,868 present)</td></tr>'
-    + '<tr><td>PMIU Census 2026</td><td>35,023 of 35,426 schools submitted (403 not submitted)</td></tr></table>'
-    + '<p class="muted">Source: SIS public dashboard, sis.pesrp.edu.pk — aggregate province figures, updated 15 Nov 2026. These are SIS province totals; the NSB figures above cover only the 9 sample schools in this system.</p></div>';
+    + '<tr><td>Schools</td><td>38,149 (Primary/MM 21,572 / Middle 7,352 / High 8,274 / H.Sec. 951)</td></tr>'
+    + '<tr><td>Current Enrolment</td><td>10,543,208 (Boys 5,042,773 / Girls 5,499,468 / Other 967)</td></tr>'
+    + '<tr><td>Teaching Staff</td><td>306,203 (PST/ESE 159,487 / EST/SESE 98,672 / SST/SSE 41,921 / Others 6,123)</td></tr>'
+    + '<tr><td>PMIU Census 2026</td><td>35,035 of 35,426 schools submitted (391 not submitted; Verified 31,879)</td></tr></table>'
+    + '<p class="muted">Source: SIS public dashboard, sis.pesrp.edu.pk — aggregate province figures, last updated 15 Nov 2026, 05:32 AM. These are SIS province totals; the NSB figures above cover only the 9 sample schools in this system.</p></div>';
 }
 function viewSchools() {
   var visible = role === "school" ? state.schools.filter(function (s) { return s.id === scopeSchool; }) : (role === "district" ? state.schools.filter(function (s) { return s.district === scopeDistrict; }) : state.schools);
