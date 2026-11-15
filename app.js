@@ -104,10 +104,9 @@ function setScopeDistrict(v) { scopeDistrict = v; render(); }
 function render() {
   var tabsEl = document.getElementById("tabs");
   var flagged = state.expenditures.filter(function (e) { return e.status === "Flagged"; }).length;
-  tabsEl.innerHTML = TABS.map(function (t) {
-    var allowed = t.roles.includes(role);
+  tabsEl.innerHTML = TABS.filter(function (t) { return t.roles.includes(role); }).map(function (t) {
     var badge = t.id === "review" && flagged ? '<span class="badge">' + flagged + '</span>' : "";
-    return '<button ' + (allowed ? "" : "disabled") + ' class="' + (tab === t.id ? "active" : "") + '" onclick="go(\'' + t.id + '\')">' + t.label + badge + "</button>";
+    return '<button class="' + (tab === t.id ? "active" : "") + '" onclick="go(\'' + t.id + '\')">' + t.label + badge + "</button>";
   }).join("");
   document.getElementById("roleSelect").value = role;
   var v = document.getElementById("view");
