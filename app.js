@@ -1,10 +1,10 @@
-/* NSB Fund Utilization Tracking Module — standalone demo.
+/* NSB Fund Utilization Tracking Module — standalone app.
    SUPABASE-READY CONFIG: leave both values empty to keep using localStorage
    in this browser. When the project owner fills in a Supabase Project URL and
    public anon key below, the app can be switched to Supabase as the shared
    database instead of localStorage. Never put a password or service key here. */
 const SUPABASE_CONFIG = { SUPABASE_URL: "", SUPABASE_ANON_KEY: "" };
-const DB_MODE = (SUPABASE_CONFIG.SUPABASE_URL && SUPABASE_CONFIG.SUPABASE_ANON_KEY) ? "Supabase (configured)" : "localStorage demo — this browser only";
+const DB_MODE = (SUPABASE_CONFIG.SUPABASE_URL && SUPABASE_CONFIG.SUPABASE_ANON_KEY) ? "Supabase (configured)" : "localStorage — this browser only";
 const KEY = "nsb_fund_utilization_v1";
 const HEADS = ["Utilities", "Minor Repairs", "Stationery", "Cleanliness", "Furniture", "Other"];
 const DISTRICTS = ["Lahore", "Sheikhupura", "Gujranwala"];
@@ -146,7 +146,7 @@ function dashboardScope() {
   var t = totals();
   t.schools = state.schools.length;
   t.flagged = state.expenditures.filter(function (e) { return e.status === "Flagged"; }).length;
-  return { t: t, districts: DISTRICTS.slice(), ids: state.schools.map(function (x) { return x.id; }), scopeText: "", schoolsLabel: "Schools in this demo" };
+  return { t: t, districts: DISTRICTS.slice(), ids: state.schools.map(function (x) { return x.id; }), scopeText: "", schoolsLabel: "Schools in this system" };
 }
 function viewDashboard() {
   var sc = dashboardScope();
@@ -224,7 +224,7 @@ function viewSchools() {
     return "<tr><td>" + esc(s.emis) + "</td><td>" + esc(s.name) + "</td><td>" + esc(s.district) + "</td><td>" + esc(s.level) + "</td><td>" + s.enrolment + "</td><td>" + s.classrooms + "</td><td>" + fmt(s.councilLimit) + "</td></tr>";
   }).join("");
   var distOpts = role === "district" ? "<option>" + esc(scopeDistrict) + "</option>" : DISTRICTS.map(function (d) { return "<option>" + d + "</option>"; }).join("");
-  var intro = role === "school" ? "Your school's record in the register." : "School master data comes from SIS in the live system. In this demo, add a school below.";
+  var intro = role === "school" ? "Your school's record in the register." : "School master data comes from SIS. Add a school below.";
   var addForm = role === "school" ? "" : '<div class="card"><h3>Add School</h3><p class="hint">Every field is required. The council limit is the maximum a school can spend on one item without district review. Pick a level and a limit is suggested automatically (Primary 100,000, Elementary 120,000, High 150,000) — you can still change it.</p><form onsubmit="addSchool(event)"><div><label>EMIS Code</label><input name="emis" required></div><div><label>School Name</label><input name="name" required></div><div><label>District</label><select name="district">' + distOpts + '</select></div><div><label>Level</label><select name="level" id="levelSel" onchange="suggestLimit()"><option>Primary</option><option>Elementary</option><option>High</option></select></div><div><label>Enrolment</label><input name="enrolment" type="number" min="1" required></div><div><label>Classrooms</label><input name="classrooms" type="number" min="1" required></div><div><label>School Council Spending Limit (Rs.)</label><input name="councilLimit" id="limitInput" type="number" min="1" value="100000" required></div><div><label>&nbsp;</label><button class="btn" type="submit">Add School</button></div></form></div>';
   return '<div class="card"><h2>Schools Register</h2><p class="muted">' + intro + '</p><table><tr><th>EMIS</th><th>School</th><th>District</th><th>Level</th><th>Enrolment</th><th>Classrooms</th><th>Council Limit</th></tr>' + rows + '</table></div>' + addForm;
 }
@@ -256,7 +256,7 @@ function viewReleases() {
   var formSchools = role === "district" ? state.schools.filter(function (s) { return s.district === scopeDistrict; }) : state.schools;
   var opts = formSchools.map(function (s) { return '<option value="' + s.id + '">' + esc(s.name) + " (" + esc(s.district) + ")</option>"; }).join("");
   var form = role === "school" ? "" : '<div class="card"><h3>Record a Release</h3><p class="hint">Enter the bank reference exactly as on the bank statement, and attach the release order or sanction letter. A release can never be more than the school\'s remaining allocation (opening balance + allocation, minus releases already recorded to that school).</p><form onsubmit="addRelease(event)"><div><label>From</label><select name="from"><option>SED</option><option>DEA Lahore</option><option>DEA Sheikhupura</option><option>DEA Gujranwala</option></select></div><div><label>To School</label><select name="schoolId">' + opts + '</select></div><div><label>Date</label><input name="date" type="date" required></div><div><label>Amount (Rs.)</label><input name="amount" type="number" min="1" required></div><div><label>Instalment</label><select name="instalment"><option>Instalment 1</option><option>Instalment 2</option><option>Instalment 3</option></select></div><div><label>Bank Transaction Reference</label><input name="bankRef" required></div><div><label>Release Order / Sanction Letter (file name)</label><input name="sanction" type="file"></div><div><label>&nbsp;</label><button class="btn" type="submit">Record Release</button></div></form></div>';
-  return '<div class="card"><h2>Releases — SED to DEA to School</h2><p class="muted">Record each release with date, amount, instalment and bank transaction reference. Upload the release order or sanction letter (file name is recorded in this demo). The school acknowledges receipt in SIS.</p>' + scopeNote + '<table><tr><th>ID</th><th>From to To</th><th>Date</th><th>Amount</th><th>Instalment</th><th>Bank Reference</th><th>Sanction Letter</th><th>Status</th><th>Action</th></tr>' + rows + '</table></div>'
+  return '<div class="card"><h2>Releases — SED to DEA to School</h2><p class="muted">Record each release with date, amount, instalment and bank transaction reference. Upload the release order or sanction letter (file name is recorded). The school acknowledges receipt in SIS.</p>' + scopeNote + '<table><tr><th>ID</th><th>From to To</th><th>Date</th><th>Amount</th><th>Instalment</th><th>Bank Reference</th><th>Sanction Letter</th><th>Status</th><th>Action</th></tr>' + rows + '</table></div>'
     + form;
 }
 function viewSpending() {
@@ -299,7 +299,7 @@ function viewAccess() {
   var rrows = rights.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("");
   var arows = state.audit.map(function (a) { return "<tr><td>" + esc(a.date) + "</td><td>" + esc(a.actor) + "</td><td>" + esc(a.action) + "</td></tr>"; }).join("");
   return '<div class="card"><h2>Access &amp; Audit Trail</h2><p class="muted">Role-based access control. Every entry, edit, acknowledgement and review is recorded with actor and date. Database: ' + esc(DB_MODE) + '.</p><table><tr><th>Role</th><th>Access</th></tr>' + rrows + '</table><h3>Audit Trail</h3><table><tr><th>Date</th><th>Actor</th><th>Action</th></tr>' + arows + '</table></div>'
-    + '<div class="card"><h3>Data — Export, Import, Reset</h3><p class="muted">' + (role === "sed" ? "Use Export JSON to back up all demo data, and Import JSON to restore it on another browser. Supabase: fill in SUPABASE_URL and SUPABASE_ANON_KEY at the top of app.js to switch this demo to a shared Supabase database. Do not use a password or service key." : "Use Export JSON to back up all demo data.") + '</p><button class="btn" onclick="exportJSON()">Export JSON</button>' + (role === "sed" ? ' <button class="btn light" onclick="document.getElementById(\'importFile\').click()">Import JSON</button><input id="importFile" type="file" accept=".json" style="display:none" onchange="importJSON(event)"> <button class="btn red" onclick="resetData()">Reset to Sample Data</button>' : "") + '</div>';
+    + '<div class="card"><h3>Data — Export, Import, Reset</h3><p class="muted">' + (role === "sed" ? "Use Export JSON to back up all data, and Import JSON to restore it on another browser. Supabase: fill in SUPABASE_URL and SUPABASE_ANON_KEY at the top of app.js to switch to a shared Supabase database. Do not use a password or service key." : "Use Export JSON to back up all data.") + '</p><button class="btn" onclick="exportJSON()">Export JSON</button>' + (role === "sed" ? ' <button class="btn light" onclick="document.getElementById(\'importFile\').click()">Import JSON</button><input id="importFile" type="file" accept=".json" style="display:none" onchange="importJSON(event)"> <button class="btn red" onclick="resetData()">Reset to Sample Data</button>' : "") + '</div>';
 }
 function suggestLimit() { var l = document.getElementById("levelSel"); var i = document.getElementById("limitInput"); if (!l || !i) return; var map = { Primary: 100000, Elementary: 120000, High: 150000 }; i.value = map[l.value] || 100000; }
 function addSchool(e) { e.preventDefault(); var f = e.target; var id = "S" + (state.schools.length + 1) + Date.now() % 1000; state.schools.push({ id: id, emis: f.emis.value, name: f.name.value, district: f.district.value, level: f.level.value, enrolment: +f.enrolment.value, classrooms: +f.classrooms.value, councilLimit: +f.councilLimit.value }); audit("School registered: " + f.name.value + " (" + f.emis.value + ")"); toast("School added: " + f.name.value); render(); }
