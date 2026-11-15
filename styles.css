@@ -1,16 +1,14 @@
-/* NSB Fund Utilization Tracking Module — School Education Department, Punjab look.
-   Colours sampled from schools.punjab.gov.pk (15 Nov 2026): header #053739, gold #D5A317,
-   green #006837, ribbon teal #17655C. Font: plain system sans (Helvetica/Arial equivalent) —
-   the site's exact declared stack could not be verified, so the closest visual match is used. */
+/* NSB Fund Utilization Tracking Module — professional government/education look.
+   System fonts only, no external dependencies. */
 :root{
-  --navy:#053739; --navy-2:#17655C; --teal:#006837; --gold:#D5A317;
-  --bg:#f7f7f7; --card:#ffffff; --ink:#333333; --muted:#666666; --line:#d9e1ec;
-  --ok:#006837; --ok-bg:#e6f4ec; --warn:#8a5a00; --warn-bg:#fff3d6;
-  --bad:#b42318; --bad-bg:#fdecea; --focus:#17655C; --radius:12px;
+  --navy:#0e2a52; --navy-2:#16407a; --teal:#0f766e; --gold:#c9a227;
+  --bg:#edf1f7; --card:#ffffff; --ink:#17233b; --muted:#5a6b84; --line:#d9e1ec;
+  --ok:#177245; --ok-bg:#e6f4ec; --warn:#8a5a00; --warn-bg:#fff3d6;
+  --bad:#b42318; --bad-bg:#fdecea; --focus:#2563eb; --radius:12px;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;font-size:15px}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;font-size:15px}
 a{color:var(--navy-2)}
 
 /* ---------- Header ---------- */
@@ -19,8 +17,7 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);colo
 .brand{flex:1 1 300px;min-width:0}
 .eyebrow{margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#f2d06b}
 .brand h1{font-size:23px;line-height:1.2;margin:0}
-.brand p{margin:5px 0 0;font-size:13px;line-height:1.45;color:#d7e9e6;max-width:560px}
-h1,h2,h3{font-weight:400}
+.brand p{margin:5px 0 0;font-size:13px;line-height:1.45;color:#cfe0f5;max-width:560px}
 .chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .chip{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:6px 12px;border:1px solid rgba(255,255,255,.35);border-radius:999px;background:rgba(255,255,255,.12);color:#fff;font-size:13px;font-weight:700;white-space:nowrap}
 .chip select{height:28px;border-radius:6px;border:0;padding:0 6px;font-size:13px;font-weight:600;color:var(--navy);background:#fff;max-width:190px}
@@ -33,7 +30,7 @@ main{max-width:1180px;margin:0 auto;padding:18px 16px 32px}
 /* ---------- Tabs ---------- */
 nav.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 18px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5}
 nav.tabs button{min-height:48px;border:1px solid #cbd5e1;background:#fff;border-radius:10px;padding:8px 8px;font-size:13px;font-weight:700;line-height:1.25;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--ink);box-shadow:0 1px 2px rgba(15,42,82,.06);transition:background .15s,border-color .15s,transform .05s}
-nav.tabs button:hover:not(:disabled){border-color:var(--navy-2);background:#eef5f3}
+nav.tabs button:hover:not(:disabled){border-color:var(--navy-2);background:#f0f5fc}
 nav.tabs button:active:not(:disabled){transform:translateY(1px)}
 nav.tabs button.active{background:var(--navy);color:#fff;border-color:var(--navy);box-shadow:inset 0 -3px 0 var(--gold)}
 nav.tabs button:disabled{opacity:.42;cursor:not-allowed;box-shadow:none}
@@ -49,15 +46,15 @@ p{line-height:1.55}
 .muted{color:var(--muted);font-size:13px}
 .hint{color:var(--muted);font-size:13px;margin:2px 0 12px}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
-.kpi{border:1px solid var(--line);border-left:4px solid var(--navy-2);border-radius:10px;padding:12px 14px;background:#fafafa}
+.kpi{border:1px solid var(--line);border-left:4px solid var(--navy-2);border-radius:10px;padding:12px 14px;background:#f8fafc}
 .kpi b{font-size:23px;display:block;line-height:1.2;letter-spacing:-.01em}
 .kpi span{font-size:12px;color:var(--muted);display:block;margin-top:3px}
 .kpi.tone-ok{border-left-color:var(--ok)}
 .kpi.tone-bad{border-left-color:var(--bad)}
 .kpi.tone-warn{border-left-color:#b7791f}
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.step{border:1px solid #bcd8d2;background:#eef5f3;border-radius:10px;padding:14px;text-align:left;cursor:pointer;font-size:14px;line-height:1.45;color:var(--ink);transition:background .15s,border-color .15s}
-.step:hover{background:#dcebe6;border-color:var(--navy-2)}
+.step{border:1px solid #bcd0ea;background:#eef4fb;border-radius:10px;padding:14px;text-align:left;cursor:pointer;font-size:14px;line-height:1.45;color:var(--ink);transition:background .15s,border-color .15s}
+.step:hover{background:#e2edf9;border-color:var(--navy-2)}
 .step b{display:block;margin-bottom:4px;font-size:14px}
 .step .step-num{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;font-weight:700;margin-bottom:8px}
 
@@ -66,7 +63,7 @@ p{line-height:1.55}
 .table-wrap table{border:0}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px}
 th,td{border-bottom:1px solid #e2e8f0;padding:9px 8px;text-align:left;vertical-align:top}
-th{background:#f7f7f7;font-size:12px;letter-spacing:.02em;white-space:nowrap}
+th{background:#eef2f7;font-size:12px;letter-spacing:.02em;white-space:nowrap}
 tr:last-child td{border-bottom:0}
 tbody tr:hover{background:#f8fafc}
 
@@ -85,14 +82,14 @@ form{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 form>div{min-width:0}
 label{font-size:12px;font-weight:700;display:block;margin-bottom:4px}
 input,select,textarea{width:100%;padding:10px;border:1px solid #b6c2d2;border-radius:8px;font-size:14px;background:#fff;color:var(--ink)}
-input:focus,select:focus,textarea:focus{border-color:var(--navy-2);box-shadow:0 0 0 3px rgba(23,101,92,.18);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--navy-2);box-shadow:0 0 0 3px rgba(37,99,235,.18);outline:none}
 input[type="file"]{padding:7px}
 .btn{background:var(--navy);color:#fff;border:0;border-radius:8px;padding:11px 16px;font-weight:700;font-size:14px;cursor:pointer;margin:4px 4px 4px 0;transition:background .15s}
 .btn:hover{background:var(--navy-2)}
 .btn.light{background:#e2e8f0;color:var(--navy)}
 .btn.light:hover{background:#cbd8e8}
 .btn.green{background:var(--ok)}
-.btn.green:hover{background:#00522c}
+.btn.green:hover{background:#12603a}
 .btn.red{background:var(--bad)}
 .btn.red:hover{background:#931b13}
 .btn:disabled{opacity:.5;cursor:not-allowed}
