@@ -10,6 +10,7 @@
 <header>
   <div class="header-inner">
     <div class="brand">
+      <p class="eyebrow">Government of the Punjab &bull; School Education Department</p>
       <h1>NSB Fund Utilization Tracking Module</h1>
       <p>School Education Department, Government of the Punjab — PMIU-PESRP — GRADES Project, Trigger 2</p>
     </div>
@@ -29,12 +30,15 @@
 </header>
 <main>
   <div class="notice"><strong>Demo version — SAMPLE data.</strong> This standalone demo uses labelled sample schools from Lahore, Sheikhupura and Gujranwala. Entries you add are saved in this browser only (localStorage). A shared database can be connected later with a Supabase Project URL and public anon key. This demo is not connected to the live SIS or IMIS systems; live integration needs the PMIU SIS/IMIS API.</div>
-  <nav class="tabs" id="tabs"></nav>
+  <nav class="tabs" id="tabs" aria-label="Sections"></nav>
   <section id="view"></section>
   <footer class="card muted">
     <strong>Source:</strong> Terms of Reference, November 2026 — Development and Integration of Digital Fund Utilization Tracking Module for Non-Salary Budget (NSB) of Schools, PMIU-PESRP. Go-live target: 12 weeks from contract signing; 12 weeks post-deployment support. Deliverables D-1 to D-11. Payment: 20% (D-1, D-2), 50% (D-3 to D-6), 30% (D-7 to D-11).
+    <p><span class="demo-note">Demo — SAMPLE data only</span></p>
+    <p>This is a demonstration with labelled sample data. It is not connected to the live SIS or IMIS systems.</p>
   </footer>
 </main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="app.js"></script>
 </body>
 </html>
